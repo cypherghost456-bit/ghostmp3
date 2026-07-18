@@ -3,63 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GHOSTMP3 — Media Downloader</title>
+    <title>GHOSTMP3</title>
     <style>
-        :root { --bg: #0d0d0d; --surface: #141414; --surface-hover: #1f1f1f; --border: #2a2a2a; --text: #e0e0e0; --text-dim: #888; --accent: #00ffcc; --accent-hover: #00e6b8; --danger: #ff4757; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        :root { --bg: #0d0d0d; --surface: #141414; --border: #2a2a2a; --text: #e0e0e0; --text-dim: #888; --accent: #00ffcc; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
         .container { width: 100%; max-width: 600px; }
-        .logo-area { text-align: center; margin-bottom: 30px; animation: fadeIn 0.8s ease-out; }
-        .logo-icon { font-size: 3rem; margin-bottom: 10px; display: inline-block; filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.5)); }
-        h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; color: var(--accent); text-shadow: 0 0 20px rgba(0, 255, 204, 0.2); }
+        .logo-area { text-align: center; margin-bottom: 30px; }
+        .logo-icon { font-size: 3rem; margin-bottom: 10px; filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.5)); }
+        h1 { font-size: 2.2rem; font-weight: 800; color: var(--accent); }
         .subtitle { font-size: 0.9rem; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
-        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; transition: all 0.3s ease; }
-        .card:hover { border-color: var(--accent); box-shadow: 0 4px 20px rgba(0, 255, 204, 0.05); }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .tab { padding: 8px 16px; background: transparent; color: var(--text-dim); border: none; cursor: pointer; font-weight: 600; border-radius: 6px; transition: all 0.2s; }
+        .tab { padding: 8px 16px; background: transparent; color: var(--text-dim); border: none; cursor: pointer; font-weight: 600; border-radius: 6px; }
         .tab.active { background: rgba(0, 255, 204, 0.1); color: var(--accent); }
-        .tab:hover:not(.active) { color: var(--text); }
         .input-group { margin-bottom: 16px; display: none; }
-        .input-group.active { display: block; animation: fadeIn 0.4s ease; }
-        label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px; font-weight: 500; }
-        input[type="text"], textarea, select { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; font-size: 1rem; transition: border-color 0.2s; outline: none; }
-        input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+        .input-group.active { display: block; }
+        label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px; }
+        input[type="text"], textarea, select { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; font-size: 1rem; outline: none; }
+        input:focus, textarea:focus { border-color: var(--accent); }
         textarea { resize: vertical; min-height: 120px; font-family: monospace; }
-        .btn { width: 100%; padding: 14px; background: var(--accent); color: #000; font-weight: 700; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; }
-        .btn:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 255, 204, 0.2); }
-        .btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn { width: 100%; padding: 14px; background: var(--accent); color: #000; font-weight: 700; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
         .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
-        .btn-outline:hover { background: rgba(0, 255, 204, 0.1); }
         .status-box { margin-top: 16px; padding: 16px; background: rgba(0,0,0,0.3); border-radius: 8px; display: none; }
         .status-text { color: var(--accent); font-size: 0.9rem; font-weight: 500; }
-        .status-error { color: var(--danger); }
+        .status-error { color: #ff4757; }
         .progress-bar { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; display: none; }
         .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; }
-        .track-list { max-height: 200px; overflow-y: auto; margin-top: 10px; border: 1px solid var(--border); border-radius: 6px; padding: 10px; background: var(--bg); }
-        .track-item { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 0.9rem; }
         .watermark { text-align: center; margin-top: 40px; color: #333; font-size: 0.8rem; letter-spacing: 1px; }
         .watermark span { color: #444; font-weight: 600; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
-
 <div class="container">
     <div class="logo-area">
         <div class="logo-icon">❄️</div>
         <h1>GHOSTMP3</h1>
-        <div class="subtitle">Phantom-Fast Media Downloader</div>
+        <div class="subtitle">Phantom-Fast Downloader</div>
     </div>
-
     <div class="card">
         <div class="tabs">
             <button class="tab active" onclick="switchTab('single')">Single</button>
             <button class="tab" onclick="switchTab('list')">List / Batch</button>
-            <button class="tab" onclick="switchTab('playlist')">Spotify</button>
         </div>
-
-        <!-- Single Tab -->
         <div id="tab-single" class="input-group active">
             <label>YouTube URL or Song Name</label>
             <input type="text" id="single-query" placeholder="e.g. Blinding Lights or https://youtu.be/...">
@@ -68,211 +57,47 @@
                 <button class="btn btn-outline" style="flex: 1" onclick="startSingle('video')">🎬 Video</button>
             </div>
         </div>
-
-        <!-- List Tab -->
         <div id="tab-list" class="input-group">
             <label>Paste up to 100 tracks (one per line)</label>
-            <textarea id="list-queries" placeholder="Nirvana Smells Like Teen Spirit&#10;Linkin Park In The End&#10;https://youtube.com/watch?v=..."></textarea>
+            <textarea id="list-queries" placeholder="Nirvana Smells Like Teen Spirit\nLinkin Park In The End"></textarea>
             <select id="list-quality" style="margin-top: 10px;">
+                <option value="music" selected>Music Only (MP3)</option>
                 <option value="720p">720p Video (MP4)</option>
                 <option value="1080p">1080p Video (MP4)</option>
-                <option value="480p">480p Video (MP4)</option>
-                <option value="music" selected>Music Only (MP3)</option>
             </select>
-            <button class="btn" style="margin-top: 12px;" onclick="startList()">Start Batch</button>
+            <button class="btn" onclick="startList()">Start Batch</button>
         </div>
-
-        <!-- Playlist Tab -->
-        <div id="tab-playlist" class="input-group">
-            <label>Spotify Playlist Link (Must be public)</label>
-            <input type="text" id="spotify-url" placeholder="https://open.spotify.com/playlist/...">
-            <button class="btn" style="margin-top: 12px;" onclick="fetchPlaylist()">Find Playlist</button>
-            
-            <div id="spotify-preview" class="hidden" style="margin-top: 15px;">
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <img id="spotify-cover" src="" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover;">
-                    <div>
-                        <h3 id="spotify-title" style="font-size: 1.1rem; color: var(--accent);"></h3>
-                        <p id="spotify-owner" style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;"></p>
-                    </div>
-                </div>
-                <div class="track-list" id="spotify-tracks"></div>
-                <button class="btn" style="margin-top: 12px;" onclick="downloadPlaylist()">Download Selected as MP3</button>
-            </div>
-        </div>
-
-        <!-- Status / Progress -->
         <div class="status-box" id="status-box">
             <div class="status-text" id="status-text">Initializing...</div>
             <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
             <button class="btn btn-outline hidden" id="download-btn" style="margin-top: 12px;">💾 Save File</button>
         </div>
     </div>
-
     <div class="watermark">GHOSTMP3 &copy; 2024 &mdash; Made by <span>Sumair</span></div>
 </div>
-
 <script>
-    let currentTaskId = null;
-    let currentBatchId = null;
-    let playlistTracks = [];
-
+    let currentTaskId = null; let currentBatchId = null;
     function switchTab(tab) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.input-group').forEach(t => t.classList.remove('active'));
         event.target.classList.add('active');
-        document.getElementById(`tab-${tab}`).classList.add('active');
+        document.getElementById('tab-'+tab).classList.add('active');
         resetStatus();
     }
-
-    function resetStatus() {
-        document.getElementById('status-box').style.display = 'none';
-        document.getElementById('download-btn').classList.add('hidden');
-        document.getElementById('progress-bar').style.display = 'none';
-        currentTaskId = null;
-        currentBatchId = null;
-    }
-
-    function showStatus(msg, isError = false) {
-        const box = document.getElementById('status-box');
-        const text = document.getElementById('status-text');
-        box.style.display = 'block';
-        text.innerText = msg;
-        text.className = isError ? 'status-text status-error' : 'status-text';
-    }
-
-    // SINGLE DOWNLOAD
+    function resetStatus() { document.getElementById('status-box').style.display='none'; document.getElementById('download-btn').classList.add('hidden'); document.getElementById('progress-bar').style.display='none'; currentTaskId=null; currentBatchId=null; }
+    function showStatus(msg, isError=false) { const box=document.getElementById('status-box'); const text=document.getElementById('status-text'); box.style.display='block'; text.innerText=msg; text.className=isError?'status-text status-error':'status-text'; }
     async function startSingle(type) {
-        const query = document.getElementById('single-query').value.trim();
-        if (!query) return alert("Please enter a URL or name.");
-        resetStatus();
-        showStatus("👻 Ghost is hunting your media...");
-        
-        const res = await fetch('/api/download', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ type, query, quality: '720p' })
-        });
-        const data = await res.json();
-        if (data.error) return showStatus(data.error, true);
-        
-        currentTaskId = data.task_id;
-        pollStatus();
+        const query=document.getElementById('single-query').value.trim(); if(!query) return alert("Empty!"); resetStatus(); showStatus("👻 Ghost is hunting...");
+        const res=await fetch('/api/download', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type,query,quality:'720p'}) });
+        const data=await res.json(); if(data.error) return showStatus(data.error,true); currentTaskId=data.task_id; pollStatus();
     }
-
-    function pollStatus() {
-        if (!currentTaskId) return;
-        fetch(`/api/status/${currentTaskId}`).then(r => r.json()).then(data => {
-            if (data.status === 'running') {
-                showStatus("⏳ Downloading & converting... Please wait.");
-                setTimeout(pollStatus, 2000);
-            } else if (data.status === 'done') {
-                showStatus("✅ Ready for download!");
-                const btn = document.getElementById('download-btn');
-                btn.classList.remove('hidden');
-                btn.onclick = () => window.location.href = `/api/file/${currentTaskId}`;
-            } else if (data.status === 'error') {
-                showStatus(`❌ ${data.message}`, true);
-            }
-        });
-    }
-
-    // LIST BATCH
+    function pollStatus() { if(!currentTaskId) return; fetch('/api/status/'+currentTaskId).then(r=>r.json()).then(data=>{ if(data.status==='running'){showStatus("⏳ Downloading...");setTimeout(pollStatus,2000);} else if(data.status==='done'){showStatus("✅ Ready!");const b=document.getElementById('download-btn');b.classList.remove('hidden');b.onclick=()=>window.location.href='/api/file/'+currentTaskId;} else if(data.status==='error'){showStatus('❌ '+data.message,true);} }); }
     async function startList() {
-        const raw = document.getElementById('list-queries').value.split('\n').filter(l => l.trim());
-        const quality = document.getElementById('list-quality').value;
-        if (!raw.length) return alert("List is empty!");
-
-        const type = quality === 'music' ? 'music' : 'video';
-        resetStatus();
-        showStatus("⏳ Starting batch...");
-        document.getElementById('progress-bar').style.display = 'block';
-
-        const res = await fetch('/api/batch', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ type, queries: raw, quality })
-        });
-        const data = await res.json();
-        if (data.error) return showStatus(data.error, true);
-        
-        currentBatchId = data.batch_id;
-        pollBatch();
+        const raw=document.getElementById('list-queries').value.split('\n').filter(l=>l.trim()); const quality=document.getElementById('list-quality').value; if(!raw.length) return alert("Empty!"); const type=quality==='music'?'music':'video'; resetStatus(); showStatus("⏳ Starting batch..."); document.getElementById('progress-bar').style.display='block';
+        const res=await fetch('/api/batch', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type,queries:raw,quality}) });
+        const data=await res.json(); if(data.error) return showStatus(data.error,true); currentBatchId=data.batch_id; pollBatch();
     }
-
-    function pollBatch() {
-        if (!currentBatchId) return;
-        fetch(`/api/batch/${currentBatchId}/status`).then(r => r.json()).then(data => {
-            const tasks = data.tasks;
-            const done = tasks.filter(t => t.status === 'done').length;
-            const total = tasks.length;
-            const pct = (done / total) * 100;
-
-            document.getElementById('progress-fill').style.width = `${pct}%`;
-            showStatus(`⏳ Batch Progress: ${done}/${total} completed`);
-
-            if (done === total) {
-                showStatus("✅ Batch Complete! Downloading ZIP...");
-                window.location.href = `/api/batch/${currentBatchId}/zip`;
-                setTimeout(resetStatus, 1000);
-            } else {
-                setTimeout(pollBatch, 3000);
-            }
-        });
-    }
-
-    // SPOTIFY PLAYLIST
-    async function fetchPlaylist() {
-        const url = document.getElementById('spotify-url').value.trim();
-        if (!url) return alert("Please paste a Spotify URL.");
-        showStatus("🔍 Fetching playlist data from Spotify...");
-
-        const res = await fetch('/api/spotify/resolve', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ url })
-        });
-        const data = await res.json();
-        if (data.error) return showStatus(data.error, true);
-
-        playlistTracks = data.tracks;
-        document.getElementById('spotify-cover').src = data.cover || '';
-        document.getElementById('spotify-title').innerText = data.name;
-        document.getElementById('spotify-owner').innerText = `by ${data.owner}`;
-        
-        const listHtml = data.tracks.map((t, i) => `
-            <div class="track-item">
-                <input type="checkbox" id="sp-track-${i}" checked>
-                <label for="sp-track-${i}">${t.name} - ${t.artists}</label>
-            </div>
-        `).join('');
-        document.getElementById('spotify-tracks').innerHTML = listHtml;
-        
-        document.getElementById('spotify-preview').classList.remove('hidden');
-        showStatus("✅ Playlist found! Select tracks below.");
-    }
-
-    async function downloadPlaylist() {
-        const queries = [];
-        playlistTracks.forEach((t, i) => {
-            if (document.getElementById(`sp-track-${i}`).checked) {
-                queries.push(t.query);
-            }
-        });
-        if (!queries.length) return alert("Select at least one track.");
-
-        resetStatus();
-        showStatus("⏳ Starting Spotify batch...");
-        document.getElementById('progress-bar').style.display = 'block';
-
-        const res = await fetch('/api/batch', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ type: 'music', queries, quality: '720p' })
-        });
-        const data = await res.json();
-        if (data.error) return showStatus(data.error, true);
-        
-        currentBatchId = data.batch_id;
-        document.getElementById('spotify-preview').classList.add('hidden');
-        pollBatch();
-    }
+    function pollBatch() { if(!currentBatchId) return; fetch('/api/batch/'+currentBatchId+'/status').then(r=>r.json()).then(data=>{ const tasks=data.tasks; const done=tasks.filter(t=>t.status==='done').length; const total=tasks.length; const pct=(done/total)*100; document.getElementById('progress-fill').style.width=pct+'%'; showStatus("⏳ Batch: "+done+"/"+total+" done"); if(done===total){showStatus("✅ Batch Done!");window.location.href='/api/batch/'+currentBatchId+'/zip';setTimeout(resetStatus,1000);} else{setTimeout(pollBatch,3000);} }); }
 </script>
 </body>
 </html>
