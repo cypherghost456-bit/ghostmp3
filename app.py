@@ -25,7 +25,6 @@ log = logging.getLogger("ghostmp3")
 app = Flask(__name__)
 download_slots = threading.Semaphore(MAX_CONCURRENT_DOWNLOADS)
 
-# --- HTML INJECTED DIRECTLY ---
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -44,7 +43,7 @@ HTML_TEMPLATE = """
         .subtitle { font-size: 0.9rem; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
         .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .tab { padding: 8px 16px; background: transparent; color: var(--text-dim); border: none; cursor: pointer; font-weight: 600; border-radius: 6px; }
+        .tab { padding: 8px 12px; background: transparent; color: var(--text-dim); border: none; cursor: pointer; font-weight: 600; border-radius: 6px; font-size: 0.9rem; }
         .tab.active { background: rgba(0, 255, 204, 0.1); color: var(--accent); }
         .input-group { margin-bottom: 16px; display: none; }
         .input-group.active { display: block; }
@@ -57,76 +56,181 @@ HTML_TEMPLATE = """
         .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
         .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
         .status-box { margin-top: 16px; padding: 16px; background: rgba(0,0,0,0.3); border-radius: 8px; display: none; }
-        .status-text { color: var(--accent); font-size: 0.9rem; font-weight: 500; }
+        .status-text { color: var(--accent); font-size: 0.9rem; font-weight: 500; word-wrap: break-word; }
         .status-error { color: #ff4757; }
         .progress-bar { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; display: none; }
         .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; }
         .watermark { text-align: center; margin-top: 40px; color: #333; font-size: 0.8rem; letter-spacing: 1px; }
         .watermark span { color: #444; font-weight: 600; }
         .hidden { display: none !important; }
+        .result-list { margin-top: 15px; }
+        .result-item { background: var(--bg); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
+        .result-item a { color: var(--accent); font-weight: 700; text-decoration: none; }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="logo-area">
-        <div class="logo-icon">👻</div>
+        <div class="logo-icon">❄️</div>
         <h1>GHOSTMP3</h1>
         <div class="subtitle">Phantom-Fast Downloader</div>
     </div>
     <div class="card">
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('single')">Single</button>
-            <button class="tab" onclick="switchTab('list')">List / Batch</button>
+            <button class="tab active" onclick="switchTab('single')">🎵 Single MP3</button>
+            <button class="tab" onclick="switchTab('list')">📋 Batch List</button>
+            <button class="tab" onclick="switchTab('video')">🎬 Video</button>
         </div>
+
+        <!-- SINGLE MP3 TAB -->
         <div id="tab-single" class="input-group active">
-            <label>YouTube URL or Song Name</label>
-            <input type="text" id="single-query" placeholder="e.g. Blinding Lights or https://youtu.be/...">
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="btn" style="flex: 1" onclick="startSingle('music')">🎵 MP3</button>
-                <button class="btn btn-outline" style="flex: 1" onclick="startSingle('video')">🎬 Video</button>
+            <label>Song Name or YouTube URL</label>
+            <input type="text" id="single-query" placeholder="e.g. Blinding Lights">
+            <button class="btn" onclick="startSingle()">Download MP3</button>
+            <div class="status-box" id="single-status-box">
+                <div class="status-text" id="single-status-text">Initializing...</div>
+                <button class="btn btn-outline hidden" id="single-download-btn" style="margin-top:12px;">💾 Save to Phone</button>
             </div>
         </div>
+
+        <!-- BATCH LIST TAB -->
         <div id="tab-list" class="input-group">
             <label>Paste up to 100 tracks (one per line)</label>
             <textarea id="list-queries" placeholder="Nirvana Smells Like Teen Spirit\\nLinkin Park In The End"></textarea>
-            <select id="list-quality" style="margin-top: 10px;">
-                <option value="music" selected>Music Only (MP3)</option>
+            <button class="btn" onclick="startList()">Download All as MP3</button>
+            <div class="status-box" id="batch-status-box">
+                <div class="status-text" id="batch-status-text">Initializing...</div>
+                <div class="progress-bar" id="batch-progress-bar"><div class="progress-fill" id="batch-progress-fill"></div></div>
+                <div class="result-list" id="batch-results"></div>
+                <button class="btn btn-outline hidden" id="batch-zip-btn" style="margin-top:12px;">💾 Download All as ZIP</button>
+            </div>
+        </div>
+
+        <!-- VIDEO TAB -->
+        <div id="tab-video" class="input-group">
+            <label>YouTube URL or Video Name</label>
+            <input type="text" id="video-query" placeholder="e.g. https://youtu.be/...">
+            <select id="video-quality" style="margin-top: 10px;">
                 <option value="720p">720p Video (MP4)</option>
                 <option value="1080p">1080p Video (MP4)</option>
+                <option value="480p">480p Video (MP4)</option>
             </select>
-            <button class="btn" onclick="startList()">Start Batch</button>
-        </div>
-        <div class="status-box" id="status-box">
-            <div class="status-text" id="status-text">Initializing...</div>
-            <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-            <button class="btn btn-outline hidden" id="download-btn" style="margin-top: 12px;">💾 Save File</button>
+            <button class="btn" onclick="startVideo()">Download Video</button>
+            <div class="status-box" id="video-status-box">
+                <div class="status-text" id="video-status-text">Initializing...</div>
+                <button class="btn btn-outline hidden" id="video-download-btn" style="margin-top:12px;">💾 Save to Phone</button>
+            </div>
         </div>
     </div>
     <div class="watermark">GHOSTMP3 &copy; 2024 &mdash; Made by <span>Sumair</span></div>
 </div>
+
 <script>
-    let currentTaskId = null; let currentBatchId = null;
+    // TAB SWITCHING
     function switchTab(tab) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.input-group').forEach(t => t.classList.remove('active'));
         event.target.classList.add('active');
         document.getElementById('tab-'+tab).classList.add('active');
-        resetStatus();
     }
-    function resetStatus() { document.getElementById('status-box').style.display='none'; document.getElementById('download-btn').classList.add('hidden'); document.getElementById('progress-bar').style.display='none'; currentTaskId=null; currentBatchId=null; }
-    function showStatus(msg, isError=false) { const box=document.getElementById('status-box'); const text=document.getElementById('status-text'); box.style.display='block'; text.innerText=msg; text.className=isError?'status-text status-error':'status-text'; }
-    async function startSingle(type) {
-        const query=document.getElementById('single-query').value.trim(); if(!query) return alert("Empty!"); resetStatus(); showStatus("👻 Ghost is hunting...");
-        const res=await fetch('/api/download', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type,query,quality:'720p'}) });
-        const data=await res.json(); if(data.error) return showStatus(data.error,true); currentTaskId=data.task_id; pollStatus();
+
+    function showStatus(type, msg, isError=false) {
+        const box = document.getElementById(type+'-status-box');
+        const text = document.getElementById(type+'-status-text');
+        box.style.display = 'block';
+        text.innerText = msg;
+        text.className = isError ? 'status-text status-error' : 'status-text';
     }
-    function pollStatus() { if(!currentTaskId) return; fetch('/api/status/'+currentTaskId).then(r=>r.json()).then(data=>{ if(data.status==='running'){showStatus("⏳ Downloading...");setTimeout(pollStatus,2000);} else if(data.status==='done'){showStatus("✅ Ready!");const b=document.getElementById('download-btn');b.classList.remove('hidden');b.onclick=()=>window.location.href='/api/file/'+currentTaskId;} else if(data.status==='error'){showStatus('❌ '+data.message,true);} }); }
+
+    // SINGLE MP3
+    async function startSingle() {
+        const query = document.getElementById('single-query').value.trim();
+        if(!query) return alert("Empty!");
+        showStatus('single', "👻 Ghost is hunting...");
+        document.getElementById('single-download-btn').classList.add('hidden');
+        
+        const res = await fetch('/api/download', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'music', query, quality:'720p'}) });
+        const data = await res.json();
+        if(data.error) return showStatus('single', data.error, true);
+        pollStatus('single', data.task_id);
+    }
+
+    function pollStatus(type, taskId) {
+        fetch('/api/status/'+taskId).then(r=>r.json()).then(data => {
+            if(data.status === 'running') {
+                showStatus(type, "⏳ Downloading & converting... please wait");
+                setTimeout(() => pollStatus(type, taskId), 2000);
+            } else if(data.status === 'done') {
+                showStatus(type, "✅ Ready! Click below to save.");
+                const btn = document.getElementById(type+'-download-btn');
+                btn.classList.remove('hidden');
+                btn.onclick = () => window.location.href = '/api/file/'+taskId;
+            } else if(data.status === 'error') {
+                showStatus(type, '❌ ' + data.message, true);
+            }
+        });
+    }
+
+    // VIDEO
+    async function startVideo() {
+        const query = document.getElementById('video-query').value.trim();
+        const quality = document.getElementById('video-quality').value;
+        if(!query) return alert("Empty!");
+        showStatus('video', "👻 Ghost is hunting...");
+        document.getElementById('video-download-btn').classList.add('hidden');
+
+        const res = await fetch('/api/download', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'video', query, quality}) });
+        const data = await res.json();
+        if(data.error) return showStatus('video', data.error, true);
+        pollStatus('video', data.task_id);
+    }
+
+    // BATCH LIST
     async function startList() {
-        const raw=document.getElementById('list-queries').value.split('\\n').filter(l=>l.trim()); const quality=document.getElementById('list-quality').value; if(!raw.length) return alert("Empty!"); const type=quality==='music'?'music':'video'; resetStatus(); showStatus("⏳ Starting batch..."); document.getElementById('progress-bar').style.display='block';
-        const res=await fetch('/api/batch', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type,queries:raw,quality}) });
-        const data=await res.json(); if(data.error) return showStatus(data.error,true); currentBatchId=data.batch_id; pollBatch();
+        const raw = document.getElementById('list-queries').value.split('\\n').filter(l => l.trim());
+        if(!raw.length) return alert("Empty!");
+        showStatus('batch', "⏳ Starting batch...");
+        document.getElementById('batch-progress-bar').style.display = 'block';
+        document.getElementById('batch-results').innerHTML = '';
+        document.getElementById('batch-zip-btn').classList.add('hidden');
+
+        const res = await fetch('/api/batch', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'music', queries:raw, quality:'720p'}) });
+        const data = await res.json();
+        if(data.error) return showStatus('batch', data.error, true);
+        pollBatch(data.batch_id, data.tasks.length);
     }
-    function pollBatch() { if(!currentBatchId) return; fetch('/api/batch/'+currentBatchId+'/status').then(r=>r.json()).then(data=>{ const tasks=data.tasks; const done=tasks.filter(t=>t.status==='done').length; const total=tasks.length; const pct=(done/total)*100; document.getElementById('progress-fill').style.width=pct+'%'; showStatus("⏳ Batch: "+done+"/"+total+" done"); if(done===total){showStatus("✅ Batch Done!");window.location.href='/api/batch/'+currentBatchId+'/zip';setTimeout(resetStatus,1000);} else{setTimeout(pollBatch,3000);} }); }
+
+    function pollBatch(batchId, total) {
+        fetch('/api/batch/'+batchId+'/status').then(r=>r.json()).then(data => {
+            const tasks = data.tasks;
+            const done = tasks.filter(t => t.status === 'done').length;
+            const errors = tasks.filter(t => t.status === 'error').length;
+            const finished = done + errors;
+            const pct = (finished / total) * 100;
+
+            document.getElementById('batch-progress-fill').style.width = pct+'%';
+            showStatus('batch', "⏳ Progress: "+done+"/"+total+" done" + (errors > 0 ? " ("+errors+" failed)" : ""));
+
+            // Update individual buttons
+            let html = '';
+            tasks.forEach(t => {
+                if(t.status === 'done') {
+                    html += '<div class="result-item"><span>✅ '+t.query+'</span><a href="/api/file/'+t.task_id+'">💾 Save</a></div>';
+                } else if(t.status === 'error') {
+                    html += '<div class="result-item"><span style="color:#ff4757">❌ '+t.query+'</span></div>';
+                }
+            });
+            document.getElementById('batch-results').innerHTML = html;
+
+            if(finished === total) {
+                showStatus('batch', "✅ Batch Complete!");
+                document.getElementById('batch-zip-btn').classList.remove('hidden');
+                document.getElementById('batch-zip-btn').onclick = () => window.location.href = '/api/batch/'+batchId+'/zip';
+            } else {
+                setTimeout(() => pollBatch(batchId, total), 3000);
+            }
+        });
+    }
 </script>
 </body>
 </html>
